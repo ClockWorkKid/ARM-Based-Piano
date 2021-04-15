@@ -5,7 +5,7 @@ fs = 1/T;
 
 downsampled_x = zeros(round((1/downsampling_factor)*length(x)),1);
 fs_downsample = fs/downsampling_factor;
-downsampled_t = 0:1/fs_downsample:1;
+downsampled_t = 0:1/fs_downsample:((length(x)-1)/fs);
 
 for i=1:length(downsampled_x)
     downsampled_x(i) = x(i*downsampling_factor - downsampling_factor + 1);
