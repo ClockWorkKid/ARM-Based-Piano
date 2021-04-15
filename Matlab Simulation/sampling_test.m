@@ -17,15 +17,15 @@ downsampled_t = 0:2/fs:1;
 
 figure
 subplot(311), stem(t,x)
-xlim([0 1])
+xlim([0 2])
 ylim([-3 3])
 title('Original signal')
 subplot(312), stem(upsampled_t,upsampled_x)
-xlim([0 1])
+xlim([0 2])
 ylim([-3 3])
 title('Upsampled by 2')
 subplot(313), stem(downsampled_t,downsampled_x)
-xlim([0 1])
+xlim([0 2])
 ylim([-3 3])
 title('Downsampled by 2')
 

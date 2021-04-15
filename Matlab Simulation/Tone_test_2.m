@@ -39,4 +39,8 @@ G6 = resample(A2,1,14);
 
 %% Playback Audio
 
-sound(Cs4, Fs);
+sound(10*Cs2, Fs);
+
+
+
+
