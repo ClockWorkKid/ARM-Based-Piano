@@ -30,7 +30,7 @@ A1_total(:,2) = A1;
 %% Playback
 A1_real = resample(A2,2,1);
 sound(20*A1_real, fs);
-pause(3);
+pause(6);
 sound(20*A1_total, fs);
 
 %% Error in manual resampling
