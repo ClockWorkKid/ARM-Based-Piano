@@ -45,6 +45,8 @@
 
 TIM_HandleTypeDef htim2;
 
+UART_HandleTypeDef huart1;
+
 /* USER CODE BEGIN PV */
 #define BUFF_SIZE  8192
 
@@ -54,12 +56,27 @@ uint32_t BUFFER_POINTER;
 uint32_t Fs = 8000;
 uint32_t n;
 
+uint8_t key_pressed, prev_key_pressed, p_data[6];
+uint8_t key_released, prev_key_released, r_data[6];
+
+uint8_t message_pressed[3] = "p ";
+uint8_t message_released[3] = "r ";
+uint8_t key_no[4] = "63 ";
+uint8_t endline[3] = "\n\r";
+uint8_t message[10] = "Hello\n\r";
+
+float baseF[36] =
+{130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185, 196, 207.65, 220, 233.08, 246.94,
+261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88,
+523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880, 932.33, 987.77};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -90,6 +107,53 @@ void DAC_OUTPUT(){
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, !!(DAC_REG & (1<<0)));
 }
 
+/*
+Key Release Data Pins
+A0 PA0
+A1 PF10
+A2 PF9
+A3 PF8
+A4 PF7
+A5 PF6
+*/
+int read_key_release(){
+	int a;
+	r_data[0] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+	r_data[1] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_10);
+	r_data[2] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_9);
+	r_data[3] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_8);
+	r_data[4] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_7);
+	r_data[5] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_6);
+
+	a = (r_data[5]<<5) + (r_data[4]<<4) + (r_data[3]<<3) + (r_data[2]<<2) + (r_data[1]<<1) + (r_data[0]<<0);
+	return a;
+}
+
+/*
+Key Press Data Pins
+pin8 PI2
+pin9 PA15
+pin10 PA8
+pin11 PB15
+pin12 PB14
+pin13 PI1
+
+*/
+int read_key_press(){
+	int a;
+	p_data[0] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2);
+	p_data[1] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15);
+	p_data[2] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8);
+	p_data[3] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
+	p_data[4] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
+	p_data[5] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_1);
+
+
+	a = (p_data[5]<<5) + (p_data[4]<<4) + (p_data[3]<<3) + (p_data[2]<<2) + (p_data[1]<<1) + (p_data[0]<<0);
+
+	return a;
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
@@ -98,7 +162,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //	DAC_OUTPUT();
 
 	n++;
-	DAC_REG = 10*(sin(2*PI*1000*(float)n/Fs) + 1);
+	if (key_pressed >= 0 && key_pressed < 36 && key_pressed!=key_released){
+		DAC_REG = 4*(sin(2*PI*baseF[key_pressed]*2*(float)n/Fs) + 1);
+	}
+	else
+		DAC_REG = 0;
+
 	DAC_OUTPUT();
 
 }
@@ -134,6 +203,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM2_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_Base_Start_IT(&htim2);	// initialize counter interrupt
@@ -147,6 +217,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//	  HAL_UART_Transmit(&huart1, message, 10, 100);
+
+	  key_pressed = read_key_press();
+	  key_released = read_key_release();
 
   }
   /* USER CODE END 3 */
@@ -160,6 +234,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage
   */
@@ -196,6 +271,12 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+  PeriphClkInitStruct.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
@@ -247,6 +328,41 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -262,15 +378,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15|GPIO_PIN_8, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOI, GPIO_PIN_3|GPIO_PIN_2|GPIO_PIN_0, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOI, GPIO_PIN_3|GPIO_PIN_0, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7|GPIO_PIN_6, GPIO_PIN_RESET);
@@ -288,18 +402,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA15 PA8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_8;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  /*Configure GPIO pins : PA15 PA8 PA0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_15|GPIO_PIN_8|GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PI3 PI2 PI0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_2|GPIO_PIN_0;
+  /*Configure GPIO pins : PI3 PI0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PI2 PI1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PC7 PC6 */
@@ -316,12 +435,26 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PF7 PF6 PF10 PF9
+                           PF8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_6|GPIO_PIN_10|GPIO_PIN_9
+                          |GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PH6 */
   GPIO_InitStruct.Pin = GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB14 PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 
