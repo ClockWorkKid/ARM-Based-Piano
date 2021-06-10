@@ -37,5 +37,35 @@ error = resampled_x' - downsampled_x;
 figure, plot(error);
 
 
+%% only downsampling
+fs = 16; %inital sampling rate
+t = 0:1/fs:1;
+x = 2*sin(2*pi*2*t);
+subplot(211), stem(t,x)
+ylim([-4 4])
+title('Original Signal');
+
+%%Downsampling
+downsampling_factor = 2;
+[downsampled_x, downsampled_t] = downsample(x, t, downsampling_factor);
+subplot(212), stem(downsampled_t, downsampled_x);
+ylim([-4 4])
+title('Downsampled signal');
+
+%% only upsampling
+fs = 16; %inital sampling rate
+t = 0:1/fs:1;
+x = 2*sin(2*pi*2*t);
+subplot(211), stem(t,x)
+ylim([-4 4])
+title('Original Signal');
+
+%%Upsampling
+upsampling_factor = 3;
+[upsampled_x, upsampled_t] = upsample_mod(x, t, upsampling_factor);
+subplot(212), stem(upsampled_t,upsampled_x)
+ylim([-4 4])
+title('Upsampled and filtered Signal');
+
 
 
