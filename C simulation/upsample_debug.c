@@ -11,7 +11,6 @@ int main()
 {
     int u = 3; //u = upsampling factor
     int up_SIZE = SIZE*u - u + 1;
-    double *p;
 
 	double x[SIZE];
 	double t[SIZE];
