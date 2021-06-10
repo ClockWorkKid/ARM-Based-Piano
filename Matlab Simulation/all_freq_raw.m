@@ -2,9 +2,11 @@ clear all, close all, clc
 
 %% Load Audio
 % http://theremin.music.uiowa.edu/MISpiano.html
-
+format long
 [A2, fs] = audioread("Piano.pp.A2.aiff");
-A2 = A2(1:100000, :);
+A2 = A2(1:100000, :)*10;
+writematrix(A2(1:1000,:), 'A2.txt');
+%dlmwrite( 'A2.txt', A2(1:1000,:), '%13f');
 t = 0:1/fs:((length(A2)-1)/fs);
 
 %% Upsampling and filtering
