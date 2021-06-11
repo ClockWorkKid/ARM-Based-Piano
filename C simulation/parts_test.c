@@ -6,14 +6,14 @@ void getText(double *a, double *b, FILE **fp);
 
 int main()
 {
-    FILE *fp = fopen("sample.txt", "r");
+    FILE *fpr = fopen("sample.txt", "r");
     double a[2];
     double b[2];
     for(int i=0; i<3; i++)
     {
         getText(a,b,&fp);
-        printf("%f %f\n",a[0],b[0]);
-        printf("%f %f\n",a[1],b[1]);
+        printf("%f %f %d\n",a[0],b[0],ftell(fp));
+        printf("%f %f %d\n",a[1],b[1],ftell(fp));
     }
     fclose(fp);
 }

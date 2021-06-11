@@ -13,7 +13,7 @@ int main()
     int u = 3; //u = upsampling factor
     int d = 2; //d = downsampling factor
     int up_SIZE = SIZE*u - u + 1;
-    int down_SIZE = (int)ceil((double)SIZE/d);
+    int down_SIZE = (int)ceil((double)up_SIZE/d);
 
 	double x[SIZE];
 	double t[SIZE];

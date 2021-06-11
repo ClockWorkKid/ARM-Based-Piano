@@ -6,14 +6,11 @@
 void main()
 {
     double first_channel[SIZE];
-    double second_channel[SIZE];
+    //double second_channel[SIZE];
     char f_channel[20];
-    char s_channel[20];
+    //char s_channel[20];
     int flag;
-
-    FILE *fp = fopen("A2.txt", "r");
-    const char s = ",";
-    char *token;
+    FILE *fp = fopen("A2_choto.txt", "r");
     int i,j;
     int index;
     if(fp != NULL)
@@ -39,26 +36,26 @@ void main()
                 {
                     f_channel[i] = currentChar;
                 }
-                else
+                /*else
                 {
                     s_channel[i-index] = currentChar;
-                }
+                }*/
             }
-            s_channel[i-index] = '\0';
+            /*s_channel[i-index] = '\0';
             for(i=0; i<strlen(s_channel)-1; i++)
             {
                 s_channel[i] = s_channel[i+1];
             }
-            s_channel[i] = '\0';
+            s_channel[i] = '\0';*/
 
             //printf("Length of second channel = %d\n", strlen(s_channel));
 
             //printf("First Channel = %s, Second Channel=%s\n", f_channel, s_channel);
 
-            first_channel[j] = (double)atof(f_channel)/10;
-            second_channel[j] = (double)atof(s_channel)/10;
+            first_channel[j] = (double)atof(f_channel);
+            //second_channel[j] = (double)atof(s_channel);
 
-            printf("First Channel = %f, Second Channel=%f\n", first_channel[j], second_channel[j]);
+            printf("First Channel = %f\n", first_channel[j]);
 
         }
         fclose(fp);

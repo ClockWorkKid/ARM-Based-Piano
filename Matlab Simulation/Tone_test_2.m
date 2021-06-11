@@ -21,7 +21,7 @@ sound(A2_mod*20, Fs_mod);
 %sound(A2_mod*20, 16000)
 %% Resample Audio
 
-A3 = resample(A2,1,2);
+A3 = resample(A2,1,2); 
 A4 = resample(A2,1,4);
 A5 = resample(A2,1,8);
 A6 = resample(A2,1,16);

@@ -23,15 +23,16 @@ upsampled_x_raw = zeros(length(upsampled_t), 1);
 a = zeros(length(t),1);
 
 for i = 1:length(upsampled_t)
+    i
     a(:,1) = upsampled_t(i);
     b = a - t';
     d = sinc(b/T);
     upsampled_x_raw(i) = sum(x'.*d);
-    if i==2
-        %x(1:5)'
-        b(1:5)/T
-        %sum(x(1:5)'.*d(1:5))
-    end
+%     if i==2
+%         %x(1:5)'
+%         b(1:5)/T
+%         %sum(x(1:5)'.*d(1:5))
+%     end
    % upsampled_x_raw(i)
 end
 

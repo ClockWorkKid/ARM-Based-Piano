@@ -5,7 +5,7 @@ clear all, close all, clc
 %format long
 [A2, fs] = audioread("Piano.pp.A2.aiff");
 A2 = A2(1:1000, :)*10;
-%writematrix(A2(1:1000,:), 'A2.txt');
+writematrix(A2, 'A2_choto.txt');
 %dlmwrite( 'A2.txt', A2(1:1000,:), '%13f');
 t = 0:1/fs:((length(A2)-1)/fs);
 
@@ -46,6 +46,7 @@ error_C2 = A1_real(:,2) - A1_total(:,2);
 subplot(212), plot(error_C2);
 title('Error per sample in channel 2');
 
-
+%%
+resampled_A2 = readtable('A2.txt');
 
 
