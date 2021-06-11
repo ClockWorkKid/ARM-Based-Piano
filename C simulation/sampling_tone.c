@@ -8,13 +8,14 @@ void getSig(double *first_channel, double *second_channel);
 void downsample(double *x, double *t, double *x_d, double *t_d, int d, int down_SIZE);
 void upsample(double *x, double *t, double *x_u, double *t_u, int u, int up_SIZE);
 void printArray(double *x, double *t, int len);
+void writeSig(double *f_channel, double *s_channel, int n);
 
 int main()
 {
     int u = 3; //u = upsampling factor
     int d = 2; //d = downsampling factor
     int up_SIZE = SIZE*u - u + 1;
-    int down_SIZE = (int)ceil((double)SIZE/d);
+    int down_SIZE = (int)ceil((double)up_SIZE/d);
 
 	double first_channel[SIZE];
 	double second_channel[SIZE];
@@ -34,29 +35,35 @@ int main()
 	getSig(first_channel, second_channel);
 	for(i=0;i<SIZE;i++)
     {
-        t[i] = i*(1/fs);
+        t[i] = (double)i/fs;
     }
 
-	printf("\n\nOriginal Signal: \n\n");
-	printArray(first_channel, t, up_SIZE);
+    //printf("Original Signal:\n\n");
+    //printf("First Channel:\n");
+	//printArray(first_channel, t, SIZE);
+	//printf("\nSecond Channel:\n");
+	//printArray(second_channel, t, SIZE);
 
 	//upsampling
+
 	t_step = t[1]-t[0];
 	fs = 1/t_step;
 	fs_u = fs*u;
 	upsample(first_channel, t, up_first, up_t, u, up_SIZE);
 	upsample(second_channel, t, up_second, up_t, u, up_SIZE);
 
-    printf("\n\nAfter upsampling: \n\n");
-	printArray(up_first, up_t, up_SIZE);
+    //printf("\n\nAfter upsampling: \n\n");
+	//printArray(up_first, up_t, up_SIZE);
 
 	//downsampling
 	fs_d = fs/d;
 	downsample(up_first, up_t, down_first, down_t, d, down_SIZE);
 	downsample(up_second, up_t, down_second, down_t, d, down_SIZE);
 
-	printf("\n\nAfter downsampling: \n\n");
-	printArray(down_first, down_t, down_SIZE);
+	//printf("\n\nAfter downsampling: \n\n");
+	//printArray(down_first, down_t, down_SIZE);
+
+	writeSig(down_first, down_second, down_SIZE);
 
 	return 0;
 }
@@ -71,6 +78,7 @@ void getSig(double *first_channel, double *second_channel)
     const char s = ",";
     char *token;
     int i,j;
+    j=0;
     int index;
     if(fp != NULL)
     {
@@ -104,10 +112,11 @@ void getSig(double *first_channel, double *second_channel)
             }
             s_channel[i] = '\0';
 
-            first_channel[j] = (double)atof(f_channel)/10;
-            second_channel[j] = (double)atof(s_channel)/10;
+            first_channel[j] = (double)atof(f_channel);
+            second_channel[j] = (double)atof(s_channel);
+            j = j+1;
 
-            printf("First Channel = %f, Second Channel=%f\n", first_channel[j], second_channel[j]);
+            //printf("First Channel = %f, Second Channel=%f\n", first_channel[j], second_channel[j]);
 
         }
         fclose(fp);
@@ -118,11 +127,28 @@ void getSig(double *first_channel, double *second_channel)
     }
 }
 
+void writeSig(double *f_channel, double *s_channel, int n)
+{
+    int i;
+    //open in write mode
+    FILE *fptr = fopen("A2_resampled.txt", "w");
+    if (fptr == NULL)
+    {
+        printf("Could not open file");
+    }
+
+    for (i = 0; i < n; i++)
+    {
+        fprintf(fptr,"%f,%f\n", f_channel[i], s_channel[i]);
+    }
+    fclose(fptr);
+}
+
 void printArray(double *x, double *t, int len)
 {
     //size_t n = sizeof(x)/sizeof(x[0]);
     int i;
-    for(i=0;i<10;i++)
+    for(i=500;i<len;i++)
 	{
 		printf("At time=%f, x=%f, i=%d\n", t[i],x[i], i);
 	}
@@ -174,6 +200,7 @@ void downsample(double *x, double *t, double *x_d, double *t_d, int d, int down_
     {
         x_d[k] = x[d*k];
         t_d[k] = t[d*k];
+        //printf("At time=%f, x_d=%f, k=%d\n", t_d[k], x_d[k], k);
     }
 }
 
