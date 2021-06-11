@@ -2,9 +2,10 @@
 #include<math.h>
 #include<string.h>
 #define pi 3.14159265
+#define SIZE 100000
 #define SIZE 1000
 
-void getSig(double *first_channel, double *second_channel);
+void getSig(double *first_channel, double *second_channel, FILE **fp);
 void downsample(double *x, double *t, double *x_d, double *t_d, int d, int down_SIZE);
 void upsample(double *x, double *t, double *x_u, double *t_u, int u, int up_SIZE);
 void printArray(double *x, double *t, int len);
@@ -12,6 +13,8 @@ void writeSig(double *f_channel, double *s_channel, int n);
 
 int main()
 {
+    FILE *fpr = fopen("A2.txt", "r");
+
     int u = 3; //u = upsampling factor
     int d = 2; //d = downsampling factor
     int up_SIZE = SIZE*u - u + 1;
@@ -32,20 +35,22 @@ int main()
 	double fs_u, fs_d;
 	int i;
 
-	getSig(first_channel, second_channel);
+	getSig(first_channel, second_channel, &fpr);
+
+	//getSig(first_channel, second_channel);
 	for(i=0;i<SIZE;i++)
     {
         t[i] = (double)i/fs;
     }
 
-    //printf("Original Signal:\n\n");
-    //printf("First Channel:\n");
-	//printArray(first_channel, t, SIZE);
+    printf("Original Signal:\n\n");
+    printf("First Channel:\n");
+	printArray(first_channel, t, SIZE);
 	//printf("\nSecond Channel:\n");
 	//printArray(second_channel, t, SIZE);
 
 	//upsampling
-
+/*
 	t_step = t[1]-t[0];
 	fs = 1/t_step;
 	fs_u = fs*u;
@@ -64,25 +69,26 @@ int main()
 	//printArray(down_first, down_t, down_SIZE);
 
 	writeSig(down_first, down_second, down_SIZE);
-
+*/
 	return 0;
 }
 
-void getSig(double *first_channel, double *second_channel)
+void getSig(double *first_channel, double *second_channel, FILE **fp)
 {
     char f_channel[20];
     char s_channel[20];
     int flag;
 
-    FILE *fp = fopen("A2.txt", "r");
+    //FILE *fp = fopen("A2.txt", "r");
+
     int i,j;
     j=0;
     int index;
-    if(fp != NULL)
+    if(*fp != NULL)
     {
         char line[40];
         char currentChar;
-        while(fgets(line, sizeof line, fp) != NULL)
+        while(fgets(line, sizeof line, *fp) != NULL)
         {
             flag = 0;
             for(i=0;i<=strlen(line);i++)
@@ -113,11 +119,13 @@ void getSig(double *first_channel, double *second_channel)
             first_channel[j] = (double)atof(f_channel);
             second_channel[j] = (double)atof(s_channel);
             j = j+1;
+            if (j==1000)
+                break;
 
             //printf("First Channel = %f, Second Channel=%f\n", first_channel[j], second_channel[j]);
 
         }
-        fclose(fp);
+        //fclose(fp);
     }
     else
     {
