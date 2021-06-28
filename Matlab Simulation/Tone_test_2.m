@@ -2,12 +2,26 @@ clear all, close all, clc
 
 %% Load Audio
 % http://theremin.music.uiowa.edu/MISpiano.html
+filename = "Piano.pp.A2.aiff"
+[A2, Fs] = audioread(filename);
+A2 = A2(1:100000, :); %cutting the sound part
 
-[A2, Fs] = audioread("Piano.pp.A2.aiff");
+new_filename = '8_bit.wav';
+audiowrite(new_filename, A2 ,Fs, 'BitsPerSample',8);
 
+[A2_mod, Fs_mod] = audioread(new_filename);
+
+sound(A2*20, Fs);
+pause(5)
+sound(A2_mod*20, Fs_mod);
+
+%A2_mod = resample(A2, 44100, 16000);
+% sound(A2*20, Fs)
+% pause(5)
+%sound(A2_mod*20, 16000)
 %% Resample Audio
 
-A3 = resample(A2,1,2);
+A3 = resample(A2,1,2); 
 A4 = resample(A2,1,4);
 A5 = resample(A2,1,8);
 A6 = resample(A2,1,16);
