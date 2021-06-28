@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -43,27 +44,38 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+SD_HandleTypeDef hsd1;
+
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-#define BUFF_SIZE  8192
+#define BUFF_SIZE  16000
 
-uint8_t AUDIO_BUFFER[BUFF_SIZE], DAC_REG;
+FRESULT res;
+FATFS SDFatFs;
+FIL myfile;
+uint8_t AUDIO_BUFFER[BUFF_SIZE];
+//char SDPath[10];
+uint32_t bytesRead;
+
+enum _bool{
+	false=0,
+	true=1
+};
+typedef enum _bool boolean;
+
+uint8_t DAC_REG;
 uint32_t BUFFER_POINTER;
 
 uint32_t Fs = 8000;
 uint32_t n;
 
-uint8_t key_pressed, prev_key_pressed, p_data[6];
-uint8_t key_released, prev_key_released, r_data[6];
+uint8_t key_ID[6], key_info[6];
+uint8_t current_key, prev_key, current_info, prev_info;
 
-uint8_t message_pressed[3] = "p ";
-uint8_t message_released[3] = "r ";
-uint8_t key_no[4] = "63 ";
-uint8_t endline[3] = "\n\r";
-uint8_t message[10] = "Hello\n\r";
+uint8_t keys_status[36];
 
 float baseF[36] =
 {130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185, 196, 207.65, 220, 233.08, 246.94,
@@ -77,6 +89,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_SDMMC1_SD_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -85,7 +98,7 @@ static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN 0 */
 
 /*
-ARDUINO HEADERS ON STM32F746 DISCOVERY BOARD
+ARDUINO HEADERS ON STM32F746 DISCOVERY BOARD (used for 8 bit DAC)
 pin7	PI3
 pin6	PH6
 pin5	PI0
@@ -108,65 +121,59 @@ void DAC_OUTPUT(){
 }
 
 /*
-Key Release Data Pins
-A0 PA0
-A1 PF10
-A2 PF9
-A3 PF8
-A4 PF7
-A5 PF6
+Key ID data Pins	Information Pins
+IDP[0] A0 PA0		INF[0] pin8 PI2
+IDP[1] A1 PF10		INF[1] pin9 PA15
+IDP[2] A2 PF9		INF[2] pin10 PA8
+IDP[3] A3 PF8		INF[3] pin11 PB15
+IDP[4] A4 PF7		INF[4] pin12 PB14
+IDP[5] A5 PF6		INF[5] pin13 PI1
 */
-int read_key_release(){
-	int a;
-	r_data[0] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
-	r_data[1] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_10);
-	r_data[2] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_9);
-	r_data[3] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_8);
-	r_data[4] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_7);
-	r_data[5] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_6);
+void keyboard_update(){
+	key_ID[0] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+	key_ID[1] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_10);
+	key_ID[2] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_9);
+	key_ID[3] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_8);
+	key_ID[4] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_7);
+	key_ID[5] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_6);
 
-	a = (r_data[5]<<5) + (r_data[4]<<4) + (r_data[3]<<3) + (r_data[2]<<2) + (r_data[1]<<1) + (r_data[0]<<0);
-	return a;
+	key_info[0] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2);
+	key_info[1] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15);
+//	key_info[2] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8);
+//	key_info[3] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
+//	key_info[4] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
+//	key_info[5] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_1);
+
+	current_key = (key_ID[5]<<5) + (key_ID[4]<<4) + (key_ID[3]<<3) + (key_ID[2]<<2) + (key_ID[1]<<1) + (key_ID[0]<<0);
+	current_info = key_info[0] + 2*key_info[1];		// 2 for key press, 1 for key release, 0 for nothing
+
+	if (current_key != prev_key || current_info != prev_info) // some state was changed
+	{
+		if (current_info == 1 && current_key>=0 && current_key<=35){
+			keys_status[current_key] = 0;
+		}
+		else if (current_info == 2 && current_key>=0 && current_key<=35){
+			keys_status[current_key] = 1;
+		}
+		prev_key = current_key;
+		prev_info = current_info;
+
+	}
+
 }
 
-/*
-Key Press Data Pins
-pin8 PI2
-pin9 PA15
-pin10 PA8
-pin11 PB15
-pin12 PB14
-pin13 PI1
-
-*/
-int read_key_press(){
-	int a;
-	p_data[0] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2);
-	p_data[1] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15);
-	p_data[2] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8);
-	p_data[3] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
-	p_data[4] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
-	p_data[5] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_1);
-
-
-	a = (p_data[5]<<5) + (p_data[4]<<4) + (p_data[3]<<3) + (p_data[2]<<2) + (p_data[1]<<1) + (p_data[0]<<0);
-
-	return a;
-}
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
-//  BUFFER_POINTER = (++BUFFER_POINTER) % BUFF_SIZE;
-//  DAC_REG = AUDIO_BUFFER[BUFFER_POINTER];
-//	DAC_OUTPUT();
-
+	int idx;
 	n++;
-	if (key_pressed >= 0 && key_pressed < 36 && key_pressed!=key_released){
-		DAC_REG = 4*(sin(2*PI*baseF[key_pressed]*2*(float)n/Fs) + 1);
+	DAC_REG = 0;
+	for (idx=0; idx<36; idx++){
+		if (keys_status[idx]){
+			DAC_REG += 64*(sin(2*PI*baseF[idx]*2*(float)n/Fs) + 1);
+		}
 	}
-	else
-		DAC_REG = 0;
 
 	DAC_OUTPUT();
 
@@ -183,6 +190,12 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
+
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
+
+  /* Enable D-Cache---------------------------------------------------------*/
+  SCB_EnableDCache();
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -204,6 +217,8 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM2_Init();
   MX_USART1_UART_Init();
+  MX_SDMMC1_SD_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_Base_Start_IT(&htim2);	// initialize counter interrupt
@@ -217,10 +232,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	  HAL_UART_Transmit(&huart1, message, 10, 100);
-
-	  key_pressed = read_key_press();
-	  key_released = read_key_release();
+	  keyboard_update();
 
   }
   /* USER CODE END 3 */
@@ -247,8 +259,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 25;
-  RCC_OscInitStruct.PLL.PLLN = 400;
+  RCC_OscInitStruct.PLL.PLLM = 12;
+  RCC_OscInitStruct.PLL.PLLN = 192;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -274,12 +286,49 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_SDMMC1
+                              |RCC_PERIPHCLK_CLK48;
+  PeriphClkInitStruct.PLLSAI.PLLSAIN = 50;
+  PeriphClkInitStruct.PLLSAI.PLLSAIR = 5;
+  PeriphClkInitStruct.PLLSAI.PLLSAIQ = 2;
+  PeriphClkInitStruct.PLLSAI.PLLSAIP = RCC_PLLSAIP_DIV4;
+  PeriphClkInitStruct.PLLSAIDivQ = 1;
+  PeriphClkInitStruct.PLLSAIDivR = RCC_PLLSAIDIVR_8;
   PeriphClkInitStruct.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLLSAIP;
+  PeriphClkInitStruct.Sdmmc1ClockSelection = RCC_SDMMC1CLKSOURCE_CLK48;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief SDMMC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SDMMC1_SD_Init(void)
+{
+
+  /* USER CODE BEGIN SDMMC1_Init 0 */
+
+  /* USER CODE END SDMMC1_Init 0 */
+
+  /* USER CODE BEGIN SDMMC1_Init 1 */
+
+  /* USER CODE END SDMMC1_Init 1 */
+  hsd1.Instance = SDMMC1;
+  hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+  hsd1.Init.ClockBypass = SDMMC_CLOCK_BYPASS_DISABLE;
+  hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+  hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
+  hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+  hsd1.Init.ClockDiv = 0;
+  /* USER CODE BEGIN SDMMC1_Init 2 */
+
+  /* USER CODE END SDMMC1_Init 2 */
+
 }
 
 /**
@@ -373,10 +422,11 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOI_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
 
