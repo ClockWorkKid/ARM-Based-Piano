@@ -46,25 +46,17 @@ int INF[6] = {8, 9, 10, 11, 12, 13};    // information pins
 unsigned long int debouncer[36], t0, t1;
 unsigned long int debounce_time = 100;  // 100ms debouncing period
 
-void send_ID(int pin){
+void sendKey(int pin){
+  digitalWrite(INF[0], LOW);
+  
   digitalWrite(IDP[0], !!(pin & 1<<0));
   digitalWrite(IDP[1], !!(pin & 1<<1));
   digitalWrite(IDP[2], !!(pin & 1<<2));
   digitalWrite(IDP[3], !!(pin & 1<<3));
   digitalWrite(IDP[4], !!(pin & 1<<4));
   digitalWrite(IDP[5], !!(pin & 1<<5));
-}
-
-void key_press(int pin){
-  send_ID(pin);
-  digitalWrite(INF[0], LOW);
-  digitalWrite(INF[1], HIGH);
-}
-
-void key_release(int pin){
-  send_ID(pin);
-  digitalWrite(INF[0], HIGH);
-  digitalWrite(INF[1], LOW);
+  
+  digitalWrite(INF[0], HIGH);           // positive edge triggered interrupt on stm32
 }
 
 
@@ -94,17 +86,16 @@ void loop() {
       if (reading && !state[i]) {
         state[i] = 1;
         debouncer[i] = t0;
-        Serial.print("Pressed ");
-        Serial.println(i);
-        key_press(i);
+        // Serial.print("Pressed ");
+        // Serial.println(i);
+        sendKey(i);
       }
       // key released
       else if (!reading && state[i]) {
         state[i] = 0;
         debouncer[i] = t0;
-        Serial.print("Released ");
-        Serial.println(i);
-        key_release(i);
+        // Serial.print("Released ");
+        // Serial.println(i);
       }
     }
   }

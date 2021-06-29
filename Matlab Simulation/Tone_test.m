@@ -8,9 +8,15 @@ C5 = C5(66500:145000, 1);
 c5 = resample(C5, 8000, 44100);
 c5 = uint8((c5 + 1)/2*255);
 
-fileID = fopen('c5.txt','w');
-fprintf(fileID,'%d ',c5);
+fileID = fopen('c5.bin','w');
+fwrite(fileID, c5);
 fclose(fileID);
+
+fileID = fopen('c5.bin','r');
+A = fread(fileID);
+fclose(fileID);
+
+
 % %%
 % 
 % C7 = resample(C5,1,4);

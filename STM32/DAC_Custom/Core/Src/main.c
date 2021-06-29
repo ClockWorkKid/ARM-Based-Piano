@@ -34,11 +34,12 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define PI 3.1415926535
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
+#define PI 3.1415926535
 
 /* USER CODE END PM */
 
@@ -51,36 +52,48 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-#define BUFF_SIZE  16000
 
-FRESULT res;
-FATFS SDFatFs;
-FIL myfile;
-uint8_t AUDIO_BUFFER[BUFF_SIZE];
-//char SDPath[10];
-uint32_t bytesRead;
+/*************************** SD CARD FILE OPERATION VARIABLES ****************************/
+
+#define BUFF_SIZE  64000
+
+FRESULT res;						// status variable for file operations
+FATFS SDFatFs;						// file system mount variable
+FIL myFile;							// file handle
+uint8_t DATA_BUFFER[BUFF_SIZE];		// temporary data buffer to store file data
+uint8_t AUDIO_BUFFER[BUFF_SIZE];	// circular audio buffer continuously playing audio
+
+int AUDIO_PTR;						// pointer for audio buffer
+
+unsigned int bytesRead;				// number of bytes that was read from a file
 
 enum _bool{
 	false=0,
 	true=1
 };
-typedef enum _bool boolean;
+typedef enum _bool boolean;			// declared a boolean data type
 
-uint8_t DAC_REG;
-uint32_t BUFFER_POINTER;
+char audio_filenames[36][8] = 		// filenames for binary audio files
+{
+	"C3.bin","C3s.bin","D3.bin","D3s.bin","E3.bin","F3.bin","F3s.bin","G3.bin","G3s.bin","A3.bin","A3s.bin","B3.bin",
+	"C4.bin","C4s.bin","D4.bin","D4s.bin","E4.bin","F4.bin","F4s.bin","G4.bin","G4s.bin","A4.bin","A4s.bin","B4.bin",
+	"c5.bin","C5s.bin","D5.bin","D5s.bin","E5.bin","F5.bin","F5s.bin","G5.bin","G5s.bin","A5.bin","A5s.bin","B5.bin"
+};
 
-uint32_t Fs = 8000;
-uint32_t n;
+/***************************** KEYBOARD PERPHERAL VARIABLES ******************************/
 
-uint8_t key_ID[6], key_info[6];
-uint8_t current_key, prev_key, current_info, prev_info;
+uint8_t DAC_REG;					// DAC register containing 8 bit audio samples to be output
 
-uint8_t keys_status[36];
+uint32_t Fs = 8000;					// sampling frequency for note play-back
 
-float baseF[36] =
-{130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185, 196, 207.65, 220, 233.08, 246.94,
-261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88,
-523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880, 932.33, 987.77};
+uint8_t key_ID[6], key_info[6];		// key_ID reads from Arduino DUE which key is pressed/released
+									// key_info reads from Arduino DUE whether a key is pressed/released
+uint8_t keypress;
+
+float base_frequencies[36] =		// core audio tone frequencies starting from C3-B5
+{130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94,
+ 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88,
+ 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77};
 
 /* USER CODE END PV */
 
@@ -97,6 +110,28 @@ static void MX_SDMMC1_SD_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/******************************* SD CARD HANDLER FUNCTIONS *********************************/
+
+void init_SD()
+{
+	res = BSP_SD_Init();				// initialize SD stuff
+	res = f_mount(&SDFatFs, "", 1);		// mount the SD card
+}
+
+void read_BIN_AUDIO(int note)
+{
+	//res = f_open(&myFile, "c5.bin", FA_OPEN_ALWAYS|FA_WRITE|FA_READ);
+	res = f_open(&myFile, audio_filenames[note], FA_OPEN_ALWAYS|FA_WRITE|FA_READ);
+	res = f_read(&myFile, DATA_BUFFER, BUFF_SIZE, &bytesRead);
+	f_close(&myFile);
+}
+
+void umount_SD()
+{
+	f_mount(0, "", 1);					// unmount the SD card
+}
+
+/***************************** KEYBOARD PERPHERAL FUNCTIONS ******************************/
 /*
 ARDUINO HEADERS ON STM32F746 DISCOVERY BOARD (used for 8 bit DAC)
 pin7	PI3
@@ -109,6 +144,7 @@ pin1	PC6
 pin0	PC7
 */
 
+// this function reads DAC_REG and generates corresponding DC voltage level to the DAC
 void DAC_OUTPUT(){
 	HAL_GPIO_WritePin(GPIOI, GPIO_PIN_3, !!(DAC_REG & (1<<7)));
 	HAL_GPIO_WritePin(GPIOH, GPIO_PIN_6, !!(DAC_REG & (1<<6)));
@@ -120,6 +156,18 @@ void DAC_OUTPUT(){
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, !!(DAC_REG & (1<<0)));
 }
 
+// starts at the current audio_pointer location and from there keeps adding values of data
+// buffer to audio buffer for new tone.
+void update_audio_buffer(){
+	int idx_audio, idx_data;
+	// int scaling_factor = 2;		// scaling factor to make sure value does not overflow
+	idx_audio = AUDIO_PTR + 1;	// get current position of audio buffer pointer
+	for (idx_data=0; idx_data<bytesRead; idx_data++){
+		idx_audio = (idx_audio+1) % BUFF_SIZE;
+		AUDIO_BUFFER[idx_audio]+=AUDIO_BUFFER[idx_audio] + DATA_BUFFER[idx_data];
+	}
+}
+
 /*
 Key ID data Pins	Information Pins
 IDP[0] A0 PA0		INF[0] pin8 PI2
@@ -129,7 +177,8 @@ IDP[3] A3 PF8		INF[3] pin11 PB15
 IDP[4] A4 PF7		INF[4] pin12 PB14
 IDP[5] A5 PF6		INF[5] pin13 PI1
 */
-void keyboard_update(){
+// reads key press/release information from Arduino DUE
+void keyboard_interrupt_handler(){
 	key_ID[0] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
 	key_ID[1] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_10);
 	key_ID[2] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_9);
@@ -137,47 +186,44 @@ void keyboard_update(){
 	key_ID[4] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_7);
 	key_ID[5] = HAL_GPIO_ReadPin(GPIOF, GPIO_PIN_6);
 
-	key_info[0] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2);
-	key_info[1] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15);
+	keypress = (key_ID[5]<<5) + (key_ID[4]<<4) + (key_ID[3]<<3) + (key_ID[2]<<2) + (key_ID[1]<<1) + (key_ID[0]<<0);
+
+//	key_info[0] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_2);		// interrupt
+//	key_info[1] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15);
 //	key_info[2] = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8);
 //	key_info[3] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
 //	key_info[4] = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
 //	key_info[5] = HAL_GPIO_ReadPin(GPIOI, GPIO_PIN_1);
 
-	current_key = (key_ID[5]<<5) + (key_ID[4]<<4) + (key_ID[3]<<3) + (key_ID[2]<<2) + (key_ID[1]<<1) + (key_ID[0]<<0);
-	current_info = key_info[0] + 2*key_info[1];		// 2 for key press, 1 for key release, 0 for nothing
-
-	if (current_key != prev_key || current_info != prev_info) // some state was changed
-	{
-		if (current_info == 1 && current_key>=0 && current_key<=35){
-			keys_status[current_key] = 0;
-		}
-		else if (current_info == 2 && current_key>=0 && current_key<=35){
-			keys_status[current_key] = 1;
-		}
-		prev_key = current_key;
-		prev_info = current_info;
-
-	}
+	read_BIN_AUDIO(keypress);	// read the corresponding audio file from SD card and save to data buffer
+	update_audio_buffer();		// add the tone to the audio buffer
 
 }
 
 
+/******************************* AUDIO HANDLER FUNCTIONS *********************************/
+
+// initializing the audio buffer to all values = 127 (mid value of DAC)
+void init_audio_buffer()
+{
+	int idx;
+	for (idx=0; idx<BUFF_SIZE; idx++){
+		AUDIO_BUFFER[idx] = 127;
+	}
+}
+
+// Timer interrupt service routine, regularly reads a value from the audio
+// buffer at the sampling frequency and outputs the sample via DAC
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+	AUDIO_PTR = (AUDIO_PTR+1) % BUFF_SIZE;
 
-	int idx;
-	n++;
-	DAC_REG = 0;
-	for (idx=0; idx<36; idx++){
-		if (keys_status[idx]){
-			DAC_REG += 64*(sin(2*PI*baseF[idx]*2*(float)n/Fs) + 1);
-		}
-	}
+	DAC_REG = AUDIO_BUFFER[AUDIO_PTR];
+	AUDIO_BUFFER[AUDIO_PTR] = 127;		// after reading a sample, reset it
 
 	DAC_OUTPUT();
-
 }
+
 
 /* USER CODE END 0 */
 
@@ -221,7 +267,13 @@ int main(void)
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_TIM_Base_Start_IT(&htim2);	// initialize counter interrupt
+  init_audio_buffer();
+
+  init_SD();
+  // read_BIN_AUDIO(0);
+  // umount_SD();
+
+  HAL_TIM_Base_Start_IT(&htim2);	// initialize timer counter interrupt for audio sample rate
 
   /* USER CODE END 2 */
 
@@ -232,7 +284,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  keyboard_update();
+	  //keyboard_update();			// reads the keyboard input infinitely
 
   }
   /* USER CODE END 3 */
@@ -465,8 +517,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PI2 PI1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_1;
+  /*Configure GPIO pin : PI2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PI1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
@@ -505,6 +563,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
 }
 
