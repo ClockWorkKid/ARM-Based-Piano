@@ -90,11 +90,6 @@ uint8_t key_ID[6], key_info[6];		// key_ID reads from Arduino DUE which key is p
 									// key_info reads from Arduino DUE whether a key is pressed/released
 uint8_t keypress;
 
-float base_frequencies[36] =		// core audio tone frequencies starting from C3-B5
-{130.81, 138.59, 146.83, 155.56, 164.81, 174.61, 185.00, 196.00, 207.65, 220.00, 233.08, 246.94,
- 261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88,
- 523.25, 554.37, 587.33, 622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.00, 932.33, 987.77};
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -164,7 +159,7 @@ void update_audio_buffer(){
 	idx_audio = AUDIO_PTR + 1;	// get current position of audio buffer pointer
 	for (idx_data=0; idx_data<bytesRead; idx_data++){
 		idx_audio = (idx_audio+1) % BUFF_SIZE;
-		AUDIO_BUFFER[idx_audio]+=AUDIO_BUFFER[idx_audio] + DATA_BUFFER[idx_data];
+		AUDIO_BUFFER[idx_audio]= DATA_BUFFER[idx_data];
 	}
 }
 

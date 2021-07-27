@@ -86,16 +86,16 @@ void loop() {
       if (reading && !state[i]) {
         state[i] = 1;
         debouncer[i] = t0;
-        // Serial.print("Pressed ");
-        // Serial.println(i);
+        //Serial.print("Pressed ");
+        //Serial.println(i);
         sendKey(i);
       }
       // key released
       else if (!reading && state[i]) {
         state[i] = 0;
         debouncer[i] = t0;
-        // Serial.print("Released ");
-        // Serial.println(i);
+        //Serial.print("Released ");
+        //Serial.println(i);
       }
     }
   }

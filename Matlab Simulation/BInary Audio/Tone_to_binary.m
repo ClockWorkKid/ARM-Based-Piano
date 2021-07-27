@@ -2,52 +2,132 @@ clear all, close all, clc
 
 %%
 
-filename = "Piano.pp.A2.aiff"
+filename = "Piano.ff.A2.aiff"
 [A2, Fs] = audioread(filename);
-Fs = 8000;
 
-A2 = 20*A2(1:400000, 1); %cutting the sound part
+tone = A2(:, 1);
+tone_power = tone.^2; 
+
+%subplot(211)
+%plot(tone);
+%subplot(212)
+%plot(tone_power);
+
+A2 = 5*A2(21000:120000, 1); %cutting the sound part
+sound(A2, 44100)
 
 %% generating tones at 44.1kHz
 
 C3  = resample(A2, 11000, 13081);
+sound(C3, 44100);
+pause(1)
 C3s = resample(A2, 11000, 13859);
+sound(C3s, 44100);
+pause(1)
 D3  = resample(A2, 11000, 14683);
+sound(D3, 44100);
+pause(1)
 D3s = resample(A2, 11000, 15556);
+sound(D3s, 44100);
+pause(1)
 E3  = resample(A2, 11000, 16481);
+sound(E3, 44100);
+pause(1)
 F3  = resample(A2, 11000, 17461);
+sound(F3, 44100);
+pause(1)
 F3s = resample(A2, 11000, 18500);
+sound(F3s, 44100);
+pause(1)
 G3  = resample(A2, 11000, 19600);
+sound(G3, 44100);
+pause(1)
 G3s = resample(A2, 11000, 20765);
+sound(G3s, 44100);
+pause(1)
 A3  = resample(A2, 11000, 22000);
+sound(A3, 44100);
+pause(1)
 A3s = resample(A2, 11000, 23308);
+sound(A3s, 44100);
+pause(1)
 B3  = resample(A2, 11000, 24694);
+sound(B3, 44100);
+pause(1)
 
 C4  = resample(C3,  1, 2);
+sound(C4, 44100);
+pause(1)
 C4s = resample(C3s, 1, 2);
+sound(C4s, 44100);
+pause(1)
 D4  = resample(D3,  1, 2);
+sound(D4, 44100);
+pause(1)
 D4s = resample(D3s, 1, 2);
+sound(D4s, 44100);
+pause(1)
 E4  = resample(E3,  1, 2);
+sound(E4, 44100);
+pause(1)
 F4  = resample(F3,  1, 2);
+sound(F4, 44100);
+pause(1)
 F4s = resample(F3s, 1, 2);
+sound(F4s, 44100);
+pause(1)
 G4  = resample(G3,  1, 2);
+sound(G4, 44100);
+pause(1)
 G4s = resample(G3s, 1, 2);
+sound(G4s, 44100);
+pause(1)
 A4  = resample(A3,  1, 2);
+sound(A4, 44100);
+pause(1)
 A4s = resample(A3s, 1, 2);
+sound(A4s, 44100);
+pause(1)
 B4  = resample(B3,  1, 2);
+sound(B4, 44100);
+pause(1)
 
 C5  = resample(C3,  1, 4);
+sound(C5, 44100);
+pause(1)
 C5s = resample(C3s, 1, 4);
+sound(C5s, 44100);
+pause(1)
 D5  = resample(D3,  1, 4);
+sound(D5, 44100);
+pause(1)
 D5s = resample(D3s, 1, 4);
+sound(D5s, 44100);
+pause(1)
 E5  = resample(E3,  1, 4);
+sound(E5, 44100);
+pause(1)
 F5  = resample(F3,  1, 4);
+sound(F5, 44100);
+pause(1)
 F5s = resample(F3s, 1, 4);
+sound(F5s, 44100);
+pause(1)
 G5  = resample(G3,  1, 4);
+sound(G5, 44100);
+pause(1)
 G5s = resample(G3s, 1, 4);
+sound(G5s, 44100);
+pause(1)
 A5  = resample(A3,  1, 4);
+sound(A5, 44100);
+pause(1)
 A5s = resample(A3s, 1, 4);
+sound(A5s, 44100);
+pause(1)
 B5  = resample(B3,  1, 4);
+sound(B5, 44100);
+pause(1)
 
 %% downsampling for Fs=8000
 
