@@ -56,24 +56,17 @@ UART_HandleTypeDef huart1;
 /*************************** SD CARD FILE OPERATION VARIABLES ****************************/
 
 #define BUFF_SIZE  64000
-
-// int SIZE = 1000;
 # define SIZE 800
 # define full_SIZE 64000
 double fs = 44100;
-int u = 25; //upsampling ratio, make changes here
-int d = 33; //downsampling ratio, make changes here
-# define up_SIZE 19976
-# define down_SIZE 606
-//int up_SIZE = SIZE*u - u + 1; //audio size after upsampling
-//int down_SIZE = (int)ceil((double)up_SIZE/d); //final size of audio
+int u = 25; //upsampling ratio
+int d = 33; //downsampling ratio
+# define up_SIZE 19976 // SIZE*u - u + 1
+# define down_SIZE 606 // (int)ceil((double)up_SIZE/d)
 double a[SIZE];
 double x[SIZE];
-//double t[SIZE];
 double up_x[up_SIZE];
-//double up_t[up_SIZE];
 double down_x[down_SIZE];
-//double down_t[down_SIZE];
 uint8_t FINAL_BUFFER[down_SIZE];
 
 FRESULT res;						// status variable for file operations
@@ -85,7 +78,7 @@ uint8_t AUDIO_BUFFER[BUFF_SIZE];	// circular audio buffer continuously playing a
 int AUDIO_PTR;						// pointer for audio buffer
 
 unsigned int bytesRead;				// number of bytes that was read from a file
-unsigned int bytesWrt;				//
+unsigned int bytesWrt;				// number of bytes to be written into file
 
 enum _bool{
 	false=0,
@@ -146,23 +139,15 @@ void read_BIN_AUDIO(int note)
 	f_close(&myFile);
 }
 
-//void upsample(double *x, double *t, double *x_u, double *t_u, int u, int up_SIZE)
 void upsample()
 {
     int k,j;
     double t_step;
-    //double fs;
     double fs_u;
     double b;
-    uint32_t t0, loop_time;
-
-
-    //t_step = t[1]-t[0];
-    //fs = 1/t_step;
     t_step = 1/fs;
     fs_u = fs*u;
 
-    //double a[SIZE];
     double sum;
 
     t0 = HAL_GetTick();
@@ -173,7 +158,6 @@ void upsample()
         sum = 0;
         for (j=0;j<SIZE;j++)
         {
-            //a[j] = (b - t[j])/t_step;
         	a[j] = (b/t_step) - j;
 
             if (a[j]!=0)
@@ -188,65 +172,29 @@ void upsample()
         }
 
         up_x[k] = sum;
-
-        loop_time = HAL_GetTick()-t0;
-        t0 = HAL_GetTick();
     }
 
 }
 
-//void downsample(double *x, double *t, double *x_d, double *t_d, int d, int down_SIZE)
 void downsample()
 {
     int k;
     for(k = 0; k<down_SIZE; k++)
     {
         down_x[k] = up_x[d*k];
-        //down_t[k] = up_t[d*k];
     }
 }
 
 void conv_BIN_AUDIO(){
-	//res = f_open(&myFile, "c5.bin", FA_OPEN_ALWAYS|FA_WRITE|FA_READ);
+
 	int note = 9;	// a3 note saved in memory
 	res = f_open(&myFile, audio_filenames[note], FA_OPEN_ALWAYS|FA_WRITE|FA_READ);
 	res = f_read(&myFile, DATA_BUFFER, BUFF_SIZE, &bytesRead);
 	f_close(&myFile);
 
-	//the audio has been read and stored into DATA_BUFFER at this point
-	//size of DATA_BUFFER is 64000
-	//1000 values will be read during one iteration
-	//resampling will be performed on these 1000 values
-	//the resampled values will be appended to a text file
-
-	//sampling ratios for different frequencies are saved in 'sampling_ratio.txt' file
-	//insert the ratios at lines 139, 140
-
-	//parameter declarations
-	/*
-	int SIZE = 1000;
-	double fs = 44100;
-    int u = 25; //upsampling ratio, make changes here
-    int d = 28; //downsampling ratio, make changes here
-    int up_SIZE = SIZE*u - u + 1; //audio size after upsampling
-    int down_SIZE = (int)ceil((double)up_SIZE/d); //final size of audio
-
-    double x[SIZE];
-	double t[SIZE];
-	double up_x[up_SIZE];
-	double up_t[up_SIZE];
-	double down_x[down_SIZE];
-	double down_t[down_SIZE];
-
-	uint8_t FINAL_BUFFER[down_SIZE];
-*/
 	int num_iter = full_SIZE/SIZE;
     int i,j;
-    //int p;
     double float_value;
-
-    //define a file handler for writing to a text file
-    //FILE *fpw = fopen("B2_C.txt", "w");
 
     for(i=0; i<num_iter; i++)
     {
@@ -258,31 +206,17 @@ void conv_BIN_AUDIO(){
            x[j] = float_value/128;
         }
 
-        /*define t for these 1000 values*/
-        /*for(p=0;p<SIZE;p++)
-        {
-            t[p] = p*( ((double)1) / fs);
-        }*/
-
         //upsample
-        //upsample(x, t, up_x, up_t, u, up_SIZE);
         upsample();
 
         //downsample
-        //downsample(up_x, up_t, down_x, down_t, d, down_SIZE);
         downsample();
 
         //convert to integer again
         for (j=0; j<down_SIZE; j++)
         {
-            //convert float to integer
-//           int someVal;
-//           someVal = (int)(down_x[j]*128.0 + 127.0);
-//           FINAL_BUFFER[j] = (char)someVal;
         	FINAL_BUFFER[j] = (uint8_t)(down_x[j]*128.0 + 127.0);
         }
-
-        //append resampled values to file
 
     }
 
