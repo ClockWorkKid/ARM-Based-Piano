@@ -1,7 +1,7 @@
 # ARM-Based-Piano
 STM32 based digital piano project for EEE416 Microprocessor and Embedded Systems Laboratory
 
-Demonstration video link: <a href="">.....</a>
+Demonstration video <a href="https://youtu.be/l-ic4qlintA">link</a>
 
 ## Contents
 - [Repository Overview](#repository-overview)
@@ -32,6 +32,7 @@ Demonstration video link: <a href="">.....</a>
 - 3.5mm headphone jack female
 - Veroboard, soldering tools
 - AWEI Y220 speaker with auxiliary cable
+- Micro SD Card
 
 ## Softwares Used
 
@@ -47,13 +48,27 @@ Demonstration video link: <a href="">.....</a>
 
 ## Working Procedure
 
+
+### Audio note synthesis from a single base note
+
+A sample note of high resolution (44.1 KHz, 24 bit sample size) was downloaded. (The notes can be found at http://theremin.music.uiowa.edu/MISpiano.html). First we trimmed the note, and resampled it using MATLAB to see if the new note satisfies the frequency requirements of the target note. Then the resample function of MATLAB was manually written using resample theory (upsampling, interpolation using sinc function, downsampling). This code also generated similar notes, implying the correct operation of resample function. Finally the resampling function was ported to C code for using with STM32 board
+
+### Keyboard interfacing with a STM32 board
+
+The designed hardware keyboard has 36 keys in total (3 octaves) and the keys are all connected to the Arduino DUE board (the STM32 discovery board did not have enough pins available as most of them were connected internally to other peripherals). Arduino DUE board reads the keypresses in polling mode with debouncing enabled. When a keypress is detected, DUE board sents an interrupt to the STM32 board along with the ID of the corresponding key being pressed.
+
+### Note playback from STM32 board
+
+The 36 piano notes are saved inside a micro SD card in binary format (8 kHz sampling rate, 8 bit resolution) and when a keypress is detected, the STM32 Discovery board reads the corresponding binary file, sends the audio samples to a buffer, and using the DAC circuit, these sample values are sent to the speaker device.
+
+
 ## Resampling Implementation in MATLAB
 
 ## Resampling Implementation in C
 
-## DAC Simulation and Design Using Proteus
-
 ## Keyboard Interfacing Using Arduino DUE and Interrupt
+
+## DAC Simulation and Design Using Proteus
 
 ## STM32 Code
 
