@@ -82,7 +82,10 @@ Here, n represents the number of the piano key. The number of the piano keys are
 
 Before we move on to how resampling is performed on the raw audio, it is easier to demonstrate the theory of resampling using a short pure sinusoid signal. Let us assume, we have a pure sinusoid of frequency 2 Hz and it has been sampled at a rate of 16 Hz. So the sampled signal looks as the following:
 
- 
+<p align="center">
+  <img src="https://github.com/ClockWorkKid/ARM-Based-Piano/blob/main/Figures/Picture1.png" width="350" title="Sampled Signal">
+</p>
+
 
 Our goal is to resample it at a ratio of 3:2. In order to do this, we need to,
 Upsample the signal by 3. That means, (3-1) = 2 new samples will be inserted between every successive sample. Then downsample the signal by 2. That means, one sample is kept and the next is discarded.
@@ -95,7 +98,10 @@ upsampled_x(t)= ∑_(n=-∞)^∞▒〖x[n]sinc((t-nT)/T)〗
 
 Here, x[n] is the original signal. It has a sampling period, T. We need to interpolate between two successive samples of ‘x’ and find out the extra sample values in between. The ‘t’ essentially represents the upsampled time axis. Now, we will visualize what’s happening with animation.
 
-*insert Upsampling animation
+<p align="center">
+  <img src="https://github.com/ClockWorkKid/ARM-Based-Piano/blob/main/Figures/Upsample.gif" width="350" title="Upsampled Signal">
+</p>
+
 
 In this animation, the original signal is being upsampled by a factor of 3. So, 2 new samples are interpolated between any two successive samples. This interpolation is done through the use of a sinc function. As you can see, the sinc does a weighted averaging of the original signal at the new sampling instances. The amplitude of the upsampled signal at the original sampling instances remains the same as the sinc becomes zero everywhere else but the sampling instance.
 
@@ -103,7 +109,11 @@ In this animation, the original signal is being upsampled by a factor of 3. So, 
 
 ### Downsampling: 
 Downsampling refers to removing samples at a periodic interval from the upsampled signal. In the animation, we can see the that every alternate sample is being removed from the upsampled signal. The result is a signal downsampled by a factor of 2. 
-*insert Downsampling animation
+
+<p align="center">
+  <img src="https://github.com/ClockWorkKid/ARM-Based-Piano/blob/main/Figures/downsample.gif" width="350" title="Downsampled Signal">
+</p>
+
 
 ### Code Snippet:
 
