@@ -80,7 +80,7 @@ The 36 piano notes are saved inside a micro SD card in binary format (8 kHz samp
 
 - Mir Sayeed Mohammad (github - https://github.com/ClockWorkKid)
 - Shafin Bin Hamid (github - https://github.com/shafinbinhamid)
-- Ramit Dutta
+- Ramit Dutta(github - https://github.com/RamitDutta)
 - Himaddri Roy (github - https://github.com/himu587)
 - Sujoy Mondal (github - https://github.com/sujoy-mondal)
 
