@@ -128,13 +128,11 @@ However, there are some challenges in hardware implementation. These are listed 
 
 ### Solution to memory limitations:
 
-
 The audio signal is broken up to equal sized slices. Resampling is performed on one slice at a time.
-
 
 The signal slice after downsampling is then written to the external memory card
 
-
+![](https://github.com/ClockWorkKid/ARM-Based-Piano/blob/main/Figures/Picture2.jpg)
 
 ## Keyboard Interfacing Using Arduino DUE and Interrupt
 
