@@ -107,6 +107,30 @@ In this animation, the original signal is being upsampled by a factor of 3. So, 
 
 ### Code Snippet: 
 
+``` matlab
+void upsample()
+{
+    int k,j;
+    double t_step,fs_u,b,sum;
+    t_step = 1/fs;
+    fs_u = fs*u;
+    for(k=0; k<up_SIZE; k++)
+    {
+        b = (double)k/fs_u;
+        sum = 0;
+        for (j=0;j<SIZE;j++)
+        {
+          a[j] = (b/t_step) - j;
+            if (a[j]!=0)           
+                a[j] = sin(pi*a[j])/(pi*a[j]);
+            else
+                a[j] = 1;
+            sum = sum + a[j]*x[j];
+        }       up_x[k] = sum;
+    }
+}
+```
+
 ### Downsampling: 
 Downsampling refers to removing samples at a periodic interval from the upsampled signal. In the animation, we can see the that every alternate sample is being removed from the upsampled signal. The result is a signal downsampled by a factor of 2. 
 
@@ -116,6 +140,18 @@ Downsampling refers to removing samples at a periodic interval from the upsample
 
 
 ### Code Snippet:
+
+``` matlab
+void downsample()
+{
+    int k;
+    for(k = 0; k<down_SIZE; k++)
+    {
+        down_x[k] = up_x[d*k];
+    }
+}
+
+```
 
 ## Resampling Implementation in C
 Now that we have an understanding of how to implement resampling in software, we need to make our code hardware compatible. To do this, we rewrite the same functions in C. The underlying principles are the same, so we are only going to show the code snippets.
