@@ -150,7 +150,7 @@ The signal slice after downsampling is then written to the external memory card
 
 - Mir Sayeed Mohammad (github - https://github.com/ClockWorkKid)
 - Shafin Bin Hamid (github - https://github.com/shafinbinhamid)
-- Ramit Dutta(github - https://github.com/RamitDutta)
+- Ramit Dutta (github - https://github.com/RamitDutta)
 - Himaddri Roy (github - https://github.com/himu587)
 - Sujoy Mondal (github - https://github.com/sujoy-mondal)
 
