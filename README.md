@@ -63,8 +63,68 @@ The 36 piano notes are saved inside a micro SD card in binary format (8 kHz samp
 
 
 ## Resampling Implementation in MATLAB
+### Fundamentals:
+
+In a conventional piano, there are 88 keys (A0-C8) that all produce tones of different frequency. These keys are divided into 8 octaves. Each octave has 12 steps.
+
+An example of an octave is as follows: A0, A0#, B0, C1, C1#, D1, D1#, E1, F1, F1#, G1, G1#
+
+Our task is to take one of these tones as our fundamental audio which we will then use to resample and generate the other audio tones of different frequencies.
+
+In our project, we have decided to take A2 as our fundamental tone. It has a frequency of 110 Hz. Now, the other audio tones are related to the base frequency through the following equation:
+
+f(n)=2^((n-25)/12)×110 Hz…………(1)
+
+Here, n represents the number of the piano key. The number of the piano keys are also predetermined. The lowest frequency tone A0 corresponds to key 1 and the highest frequency tone C8 corresponds to key 88. Our base audio A2 has key 25. Through the relation in equation (1), we can determine the resampling ratio that is needed to generate any particular tone from A2.
+
+
+### Resampling on sinusoidal signal:
+
+Before we move on to how resampling is performed on the raw audio, it is easier to demonstrate the theory of resampling using a short pure sinusoid signal. Let us assume, we have a pure sinusoid of frequency 2 Hz and it has been sampled at a rate of 16 Hz. So the sampled signal looks as the following:
+
+ 
+
+Our goal is to resample it at a ratio of 3:2. In order to do this, we need to,
+Upsample the signal by 3. That means, (3-1) = 2 new samples will be inserted between every successive sample. Then downsample the signal by 2. That means, one sample is kept and the next is discarded.
+
+
+### Upsampling
+
+To Upsample the signal, we use the following equation of Sinc interpolation, 
+upsampled_x(t)= ∑_(n=-∞)^∞▒〖x[n]sinc((t-nT)/T)〗
+
+Here, x[n] is the original signal. It has a sampling period, T. We need to interpolate between two successive samples of ‘x’ and find out the extra sample values in between. The ‘t’ essentially represents the upsampled time axis. Now, we will visualize what’s happening with animation.
+
+*insert Upsampling animation
+
+In this animation, the original signal is being upsampled by a factor of 3. So, 2 new samples are interpolated between any two successive samples. This interpolation is done through the use of a sinc function. As you can see, the sinc does a weighted averaging of the original signal at the new sampling instances. The amplitude of the upsampled signal at the original sampling instances remains the same as the sinc becomes zero everywhere else but the sampling instance.
+
+### Code Snippet: 
+
+### Downsampling: 
+Downsampling refers to removing samples at a periodic interval from the upsampled signal. In the animation, we can see the that every alternate sample is being removed from the upsampled signal. The result is a signal downsampled by a factor of 2. 
+*insert Downsampling animation
+
+### Code Snippet:
 
 ## Resampling Implementation in C
+Now that we have an understanding of how to implement resampling in software, we need to make our code hardware compatible. To do this, we rewrite the same functions in C. The underlying principles are the same, so we are only going to show the code snippets.
+### Code Snippets:
+### Upsampling: 
+### Downsampling:
+However, there are some challenges in hardware implementation. These are listed as follows:
+	Since any two consecutive audio tones are related to each other by a factor of 2^(1/12), so we have to approximate this irrational number to an integer ratio. But there are practical limitations on this ratio. Because we have limited memory on our microcontroller board, we cannot upsample the signal to any arbitrary ratio.
+	Since our audio signal is large (64000 samples), we cannot perform resampling on the total signal at once because the upsampled signal becomes too large and does not fit into memory
+
+### Solution to memory limitations:
+
+
+The audio signal is broken up to equal sized slices. Resampling is performed on one slice at a time.
+
+
+The signal slice after downsampling is then written to the external memory card
+
+
 
 ## Keyboard Interfacing Using Arduino DUE and Interrupt
 
@@ -80,7 +140,7 @@ The 36 piano notes are saved inside a micro SD card in binary format (8 kHz samp
 
 - Mir Sayeed Mohammad (github - https://github.com/ClockWorkKid)
 - Shafin Bin Hamid (github - https://github.com/shafinbinhamid)
-- Ramit Dutta
+- Ramit Dutta (github - https://github.com/RamitDutta)
 - Himaddri Roy (github - https://github.com/himu587)
 - Sujoy Mondal (github - https://github.com/sujoy-mondal)
 
