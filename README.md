@@ -4,7 +4,7 @@ STM32 based digital piano project for EEE416 Microprocessor and Embedded Systems
 Demonstration video <a href="https://youtu.be/l-ic4qlintA">link</a>
 
 <p align="center">
-  <img src="Figures/Pic/Piano.jpg" width="350" title="ARM Piano">
+  <img src="Figures/Pic/Piano.jpg" title="ARM Piano">
 </p>
 
 ## Contents
@@ -68,7 +68,7 @@ The repository directories include several folders for each component of the pro
 A sample note of high resolution (44.1 KHz, 24 bit sample size) was downloaded. (The notes can be found at http://theremin.music.uiowa.edu/MISpiano.html). First we trimmed the note, and resampled it using MATLAB to see if the new note satisfies the frequency requirements of the target note. Then the resample function of MATLAB was manually written using resample theory (upsampling, interpolation using sinc function, downsampling). This code also generated similar notes, implying the correct operation of resample function. Finally the resampling function was ported to C code for using with STM32 board
 
 <p align="center">
-  <img src="Figures/synthesis.png" width="350" title="Resampling Signal">
+  <img src="Figures/synthesis.png" width="700" title="Note Synthesis">
 </p>
 
 ### Keyboard interfacing with a STM32 board
@@ -80,7 +80,7 @@ The designed hardware keyboard has 36 keys in total (3 octaves) and the keys are
 The 36 piano notes are saved inside a micro SD card in binary format (8 kHz sampling rate, 8 bit resolution) and when a keypress is detected, the STM32 Discovery board reads the corresponding binary file, sends the audio samples to a buffer, and using the DAC circuit, these sample values are sent to the speaker device.
 
 <p align="center">
-  <img src="Figures/playback.png" width="350" title="Resampling Signal">
+  <img src="Figures/playback.png" width="700" title="Note Playback">
 </p>
 
 
@@ -95,7 +95,7 @@ Our task is to take one of these tones as our fundamental audio which we will th
 
 In our project, we have decided to take A2 as our fundamental tone. It has a frequency of 110 Hz. Now, the other audio tones are related to the base frequency through the following equation:
 
-f(n)=2^((n-25)/12)×110 Hz…………(1)
+f(n)=2^((n-25)/12)×110 Hz
 
 Here, n represents the number of the piano key. The number of the piano keys are also predetermined. The lowest frequency tone A0 corresponds to key 1 and the highest frequency tone C8 corresponds to key 88. Our base audio A2 has key 25. Through the relation in equation (1), we can determine the resampling ratio that is needed to generate any particular tone from A2.
 
@@ -105,7 +105,7 @@ Here, n represents the number of the piano key. The number of the piano keys are
 Before we move on to how resampling is performed on the raw audio, it is easier to demonstrate the theory of resampling using a short pure sinusoid signal. Let us assume, we have a pure sinusoid of frequency 2 Hz and it has been sampled at a rate of 16 Hz. So the sampled signal looks as the following:
 
 <p align="center">
-  <img src="Figures/Picture1.png" width="350" title="Sampled Signal">
+  <img src="Figures/Picture1.png" width="400" title="Sampled Signal">
 </p>
 
 
@@ -116,18 +116,93 @@ Upsample the signal by 3. That means, (3-1) = 2 new samples will be inserted bet
 ### Upsampling
 
 To Upsample the signal, we use the following equation of Sinc interpolation, 
-upsampled_x(t)= ∑_(n=-∞)^∞▒〖x[n]sinc((t-nT)/T)〗
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/66994793/137626274-e0a40526-0105-4708-bbad-8cfb3d90914b.png">
+</p>
+
 
 Here, x[n] is the original signal. It has a sampling period, T. We need to interpolate between two successive samples of ‘x’ and find out the extra sample values in between. The ‘t’ essentially represents the upsampled time axis. Now, we will visualize what’s happening with animation.
 
 <p align="center">
-  <img src="Figures/Upsample.gif" width="350" title="Upsampled Signal">
+  <img src="Figures/Upsample.gif" width="500" title="Upsampled Signal">
 </p>
 
 
 In this animation, the original signal is being upsampled by a factor of 3. So, 2 new samples are interpolated between any two successive samples. This interpolation is done through the use of a sinc function. As you can see, the sinc does a weighted averaging of the original signal at the new sampling instances. The amplitude of the upsampled signal at the original sampling instances remains the same as the sinc becomes zero everywhere else but the sampling instance.
 
-### Code Snippet: 
+#### Code Snippet: 
+``` MATLAB
+function [upsampled_x_raw, upsampled_t] = upsample(x,t,upsampling_factor)
+
+T = t(2)-t(1);
+fs = 1/T;
+
+fs_upsample = upsampling_factor*fs;
+upsampled_t = 0:1/fs_upsample:((length(x)-1)/fs);
+upsampled_x_raw = zeros(length(upsampled_t), 1);
+
+a = zeros(length(t),1);
+
+for i = 1:length(upsampled_t)
+    a(:,1) = upsampled_t(i);
+    b = a - t';
+    d = sinc(b/T);
+    upsampled_x_raw(i) = sum(x'.*d);
+end
+
+end
+
+```
+### Downsampling: 
+Downsampling refers to removing samples at a periodic interval from the upsampled signal. In the animation, we can see the that every alternate sample is being removed from the upsampled signal. The result is a signal downsampled by a factor of 2. 
+
+<p align="center">
+  <img src="Figures/downsample.gif" width="350" title="Downsampled Signal">
+</p>
+
+
+#### Code Snippet:
+``` C
+function [downsampled_x, downsampled_t] = downsample(x,t,downsampling_factor)
+
+T = t(2)-t(1);
+fs = 1/T;
+
+downsampled_x = zeros(round((1/downsampling_factor)*length(x)),1);
+fs_downsample = fs/downsampling_factor;
+downsampled_t = 0:1/fs_downsample:((length(x)-1)/fs);
+
+for i=1:length(downsampled_x)
+    downsampled_x(i) = x(i*downsampling_factor - downsampling_factor + 1);
+end
+
+end
+
+```
+### Main Code:
+``` MATLAB
+clear all, close all, clc
+
+%% Load Audio
+% http://theremin.music.uiowa.edu/MISpiano.html
+[A2, fs] = audioread("Piano.pp.A2.aiff");
+A2 = A2(1:100000, :)*10; 
+t = 0:1/fs:((length(A2)-1)/fs);
+
+%% Upsampling and filtering
+upsampling_factor = 2;
+[upsampled_A2, upsampled_t] = upsample(A2(:,1)',t,upsampling_factor);
+
+%% Downsampling
+downsampling_factor = 1;
+[A1_M, downsampled_t] = downsample(upsampled_A2, upsampled_t, downsampling_factor);
+
+```
+## Resampling Implementation in C
+Now that we have an understanding of how to implement resampling in software, we need to make our code hardware compatible. To do this, we rewrite the same functions in C. The underlying principles are the same, so we are only going to show the code snippets.
+### Code Snippets:
+#### Upsampling: 
 
 ``` C
 void upsample()
@@ -152,17 +227,7 @@ void upsample()
     }
 }
 ```
-
-### Downsampling: 
-Downsampling refers to removing samples at a periodic interval from the upsampled signal. In the animation, we can see the that every alternate sample is being removed from the upsampled signal. The result is a signal downsampled by a factor of 2. 
-
-<p align="center">
-  <img src="Figures/downsample.gif" width="350" title="Downsampled Signal">
-</p>
-
-
-### Code Snippet:
-
+#### Downsampling:
 ``` C
 void downsample()
 {
@@ -175,14 +240,9 @@ void downsample()
 
 ```
 
-## Resampling Implementation in C
-Now that we have an understanding of how to implement resampling in software, we need to make our code hardware compatible. To do this, we rewrite the same functions in C. The underlying principles are the same, so we are only going to show the code snippets.
-### Code Snippets:
-### Upsampling: 
-### Downsampling:
 However, there are some challenges in hardware implementation. These are listed as follows:
-	Since any two consecutive audio tones are related to each other by a factor of 2^(1/12), so we have to approximate this irrational number to an integer ratio. But there are practical limitations on this ratio. Because we have limited memory on our microcontroller board, we cannot upsample the signal to any arbitrary ratio.
-	Since our audio signal is large (64000 samples), we cannot perform resampling on the total signal at once because the upsampled signal becomes too large and does not fit into memory
+- Since any two consecutive audio tones are related to each other by a factor of 2^(1/12), so we have to approximate this irrational number to an integer ratio. But there are practical limitations on this ratio. Because we have limited memory on our microcontroller board, we cannot upsample the signal to any arbitrary ratio.
+- Since our audio signal is large (64000 samples), we cannot perform resampling on the total signal at once because the upsampled signal becomes too large and does not fit into memory
 
 ### Solution to memory limitations:
 
@@ -193,6 +253,35 @@ The signal slice after downsampling is then written to the external memory card
 <p align="center">
   <img src="Figures/Picture2.jpg" width="350" title="Resampling summary">
 </p>
+#### Code Snippet for Signal Slicing:
+``` C
+for(i=0; i<num_iter; i++)
+{
+    /*get 1000 values and load into x*/
+    for (j=0; j<SIZE; j++)
+    {
+       //convert integer to float
+       float_value = (double)((DATA_BUFFER[i*SIZE + j] - 127));
+       x[j] = float_value/128;
+    }
+
+    upsample();
+    downsample();
+
+    //convert to integer again
+    for (j=0; j<down_SIZE; j++)
+    {
+      FINAL_BUFFER[j] = (uint8_t)(down_x[j]*128.0 + 127.0);
+    }
+
+}
+```
+### Parameters and Error Minimization:
+- The highest Upsampling ratio we have used is 25. 
+- The slice length is set to 800
+There is a trade-off between these two parameters. If we increase the slice length, then the highest permissible ratio for Upsampling will decrease to meet memory requirements and vice-versa.
+Between the end of any slice and the beginning of the next slice, the extra samples for Upsampling are not inserted. This is a source of error. Since we keeping the slice length to a sufficiently large number, this error is not significant.  
+
 
 ## Keyboard Interfacing Using Arduino DUE Interrupt
 
@@ -220,7 +309,7 @@ Each of the key wire is connected to Arduino DUE digital input pins.
 </p>
 
 Arduino DUE reads the 36 keys in polling method. 
-``` Arduino
+``` C Arduino
  for (int i = 0; i < 36; i++) {
     t0 = millis();
     if (t0 - debouncer[i] >= debounce_time) {
@@ -246,7 +335,7 @@ Upon detection of a keypress, DUE board generates an interrupt signal and a corr
 
 **Interrupt Generation from Arduino DUE**
 
-``` Arduino
+```C Arduino
 void sendKey(int pin){
   digitalWrite(INF[0], LOW);
   digitalWrite(IDP[0], !!(pin & 1<<0));
