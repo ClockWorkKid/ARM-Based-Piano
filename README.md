@@ -4,7 +4,7 @@ STM32 based digital piano project for EEE416 Microprocessor and Embedded Systems
 Demonstration video <a href="https://youtu.be/l-ic4qlintA">link</a>
 
 <p align="center">
-  <img src="Figures/Pic/piano.jpg" width="350" title="Resampling Signal">
+  <img src="Figures/Pic/piano.jpg" width="350" title="ARM Piano">
 </p>
 
 ## Contents
@@ -210,7 +210,7 @@ These keys are pulled down with a 10k resistor each.
 
 The bottom panel of the keyboad has aluminium foil body connected to positive terminal of the circuit board.
 <p align="center">
-  <img src="Figures/Pic/Aluminum1.jpg" width="350" title="Pulldown Circuit">
+  <img src="Figures/Pic/Aluminum1.jpg" width="350" title="Metal Plane">
 </p>
 
 Each of the key wire is connected to Arduino DUE digital input pins.
