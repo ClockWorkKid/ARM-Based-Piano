@@ -18,7 +18,6 @@ Demonstration video <a href="https://youtu.be/l-ic4qlintA">link</a>
 - [DAC Simulation and Design Using Proteus](#dac-simulation-and-design-using-proteus)
 - [Keyboard Interfacing Using Arduino DUE and Interrupt](#keyboard-interfacing-using-arduino-due-and-interrupt)
 - [STM32 Code](#stm32-code)
-- [Conclusion](#conclusion)
 - [Team](#team)
 
 ## Repository Overview
