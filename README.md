@@ -210,7 +210,7 @@ These keys are pulled down with a 10k resistor each.
 
 The bottom panel of the keyboad has aluminium foil body connected to positive terminal of the circuit board.
 <p align="center">
-  <img src="Figures/Pic/Aluminum1.jpg" width="350" title="Metal Plane">
+  <img src="Figures/Pic/aluminum1.jpg" width="350" title="Metal Plane">
 </p>
 
 Each of the key wire is connected to Arduino DUE digital input pins.
