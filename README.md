@@ -263,7 +263,7 @@ void sendKey(int pin){
 A simple R-2R resistor ladder DAC with 8 bit resolution was designed. This was built onto an Arduino Prototype Shield that could be easily stacked onto the STM32F7 Discovery board Arduino Compatible Headers.
 
 <p align="center">
-  <img src="Figures/DAC_circuit.bmp" width="350" title="DAC Circuit">
+  <img src="Figures/DAC_circuit.BMP" width="350" title="DAC Circuit">
 </p>
 
 
