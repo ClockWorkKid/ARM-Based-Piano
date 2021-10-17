@@ -132,6 +132,7 @@ Here, x[n] is the original signal. It has a sampling period, T. We need to inter
 In this animation, the original signal is being upsampled by a factor of 3. So, 2 new samples are interpolated between any two successive samples. This interpolation is done through the use of a sinc function. As you can see, the sinc does a weighted averaging of the original signal at the new sampling instances. The amplitude of the upsampled signal at the original sampling instances remains the same as the sinc becomes zero everywhere else but the sampling instance.
 
 #### Code Snippet: 
+
 ``` MATLAB
 function [upsampled_x_raw, upsampled_t] = upsample(x,t,upsampling_factor)
 
@@ -158,7 +159,7 @@ end
 Downsampling refers to removing samples at a periodic interval from the upsampled signal. In the animation, we can see the that every alternate sample is being removed from the upsampled signal. The result is a signal downsampled by a factor of 2. 
 
 <p align="center">
-  <img src="Figures/downsample.gif" width="350" title="Downsampled Signal">
+  <img src="Figures/downsample.gif" width="500" title="Downsampled Signal">
 </p>
 
 
@@ -251,8 +252,9 @@ The audio signal is broken up to equal sized slices. Resampling is performed on 
 The signal slice after downsampling is then written to the external memory card
 
 <p align="center">
-  <img src="Figures/Picture2.jpg" width="350" title="Resampling summary">
+  <img src="Figures/Picture2.jpg" width="700" title="Resampling summary">
 </p>
+
 #### Code Snippet for Signal Slicing:
 ``` C
 for(i=0; i<num_iter; i++)
@@ -276,6 +278,7 @@ for(i=0; i<num_iter; i++)
 
 }
 ```
+
 ### Parameters and Error Minimization:
 - The highest Upsampling ratio we have used is 25. 
 - The slice length is set to 800
@@ -352,7 +355,7 @@ void sendKey(int pin){
 A simple R-2R resistor ladder DAC with 8 bit resolution was designed. This was built onto an Arduino Prototype Shield that could be easily stacked onto the STM32F7 Discovery board Arduino Compatible Headers.
 
 <p align="center">
-  <img src="Figures/DAC_circuit.BMP" width="350" title="DAC Circuit">
+  <img src="Figures/DAC_circuit.BMP" width="500" title="DAC Circuit">
 </p>
 
 
