@@ -4,7 +4,7 @@ STM32 based digital piano project for EEE416 Microprocessor and Embedded Systems
 Demonstration video <a href="https://youtu.be/l-ic4qlintA">link</a>
 
 <p align="center">
-  <img src="Figures/Pic/piano.jpg" width="350" title="ARM Piano">
+  <img src="Figures/Pic/Piano.jpg" width="350" title="ARM Piano">
 </p>
 
 ## Contents
