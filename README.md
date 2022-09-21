@@ -1,11 +1,10 @@
 # ARM-Based-Piano
 STM32 based digital piano project for EEE416 Microprocessor and Embedded Systems Laboratory
 
+
 Demonstration video <a href="https://youtu.be/l-ic4qlintA">link</a>
 
-<p align="center">
-  <img src="Figures/Pic/Piano.jpg" title="ARM Piano">
-</p>
+[<img src="https://i.ytimg.com/vi/l-ic4qlintA/maxresdefault.jpg" width="50%">](https://www.youtube.com/watch?v=l-ic4qlintA "Now in Android: 55")
 
 ## Contents
 - [Repository Overview](#repository-overview)
